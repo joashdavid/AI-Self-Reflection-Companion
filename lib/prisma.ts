@@ -43,17 +43,17 @@
 
 import { PrismaClient } from "@prisma/client";
 
-let prisma: PrismaClient;
+let prisma: PrismaClient | null = null;
 
-declare global {
-  var prisma: PrismaClient | undefined;
+export function getPrisma() {
+  if (!prisma) {
+    if (!process.env.DATABASE_URL) {
+      throw new Error("DATABASE_URL is not defined");
+    }
+
+    prisma = new PrismaClient();
+  }
+
+  return prisma;
 }
-
-if (!global.prisma) {
-  global.prisma = new PrismaClient();
-}
-
-prisma = global.prisma;
-
-export { prisma };
 
