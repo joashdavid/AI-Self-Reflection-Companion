@@ -10,17 +10,18 @@
 //   }
 // }
 
-import { prisma } from "@/lib/prisma";
-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
     const journals = await prisma.journalEntry.findMany();
     return Response.json({ success: true, journals });
   } catch (error) {
-    console.error(error);
+    console.error("DB ERROR:", error);
     return Response.json({ error: "Database failed" }, { status: 500 });
   }
 }
