@@ -12,6 +12,7 @@
 
 import { prisma } from "@/lib/prisma";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
@@ -23,3 +24,4 @@ export async function GET() {
     return Response.json({ error: "Database failed" }, { status: 500 });
   }
 }
+
