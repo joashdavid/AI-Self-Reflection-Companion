@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Image from "next/image";
 const AiCompanionIcon = () => (
   <svg
@@ -6,7 +8,10 @@ const AiCompanionIcon = () => (
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
+    role="img" // Added role for semantic meaning
+    aria-labelledby="ai-companion-logo-title" // Links to the title element
   >
+    <title id="ai-companion-logo-title">AI Self-Reflection Companion Logo</title> {/* Provides accessible name */}
     <path
       d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21Z"
       stroke="currentColor"
@@ -56,6 +61,7 @@ const FeatureCard = ({ title, description, icon }: FeatureCardProps) => (
         width={80}
         height={80}
         className="object-contain"
+        priority
       />
     </div>
 
@@ -71,20 +77,15 @@ const FeatureCard = ({ title, description, icon }: FeatureCardProps) => (
   </div>
 );
 
-// const FeatureCard1 = ({ title, description }: { title: string; description: string }) => (
-//   <div className="bg-white/50 dark:bg-gray-800/30 backdrop-blur-lg rounded-2xl p-8 shadow-sm hover:shadow-xl transition-shadow duration-300 border border-gray-200/50 dark:border-gray-700/50">
-//     <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{title}</h3>
-//     <p className="mt-4 text-gray-600 dark:text-gray-300 leading-relaxed">{description}</p>
-//   </div>
-// );
 
 export default function HomePage() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-indigo-950 dark:to-black text-gray-800 dark:text-gray-200">
       
       <header className="sticky top-0 z-50 bg-white/30 dark:bg-gray-900/30 backdrop-blur-lg border-b border-gray-200/50 dark:border-gray-800/50">
-        <nav className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-3">
+        <nav className="container mx-auto px-6 py-4 flex justify-between items-center relative">
+          <div className="flex items-center space-x-3 z-20">
             <AiCompanionIcon />
             <span className="font-semibold text-lg text-gray-800 dark:text-gray-100">
               AI Self-Reflection Companion
@@ -96,17 +97,38 @@ export default function HomePage() {
             <a href="/insights" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Insights</a>
             <a href="/history" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">History</a>
           </div>
-          {/* <a
-            href="#"
-            // className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-indigo-700 dark:hover:bg-indigo-500 transition-all shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-900"
-            className="bg-indigo-400 text-white px-5 py-2.5 rounded-lg text-sm font-semibold 
-  hover:bg-indigo-500 dark:hover:bg-indigo-400 
-  transition-all shadow-sm hover:shadow-md 
-  focus:outline-none focus:ring-2 focus:ring-indigo-400 
-  focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-900"
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden p-2 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 z-20"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-controls="mobile-menu"
+            aria-expanded={isMenuOpen}
           >
-            Get Started
-          </a> */}
+            {isMenuOpen ? (
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
+
+          {/* Mobile Menu Overlay */}
+          {isMenuOpen && (
+            <div
+              id="mobile-menu"
+              className="md:hidden absolute top-full left-0 w-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border-t border-gray-200/50 dark:border-gray-800/50 py-4 pb-8 shadow-lg z-10"
+            >
+              <div className="flex flex-col items-center space-y-4">
+                <a href="/journal" className="text-gray-800 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-lg" onClick={() => setIsMenuOpen(false)}>Journal</a>
+                <a href="/insights" className="text-gray-800 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-lg" onClick={() => setIsMenuOpen(false)}>Insights</a>
+                <a href="/history" className="text-gray-800 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-lg" onClick={() => setIsMenuOpen(false)}>History</a>
+              </div>
+            </div>
+          )}
         </nav>
       </header>
 
@@ -160,24 +182,6 @@ export default function HomePage() {
   </div>
 </section>
 
-        {/* <section id="features" className="py-20 md:py-24 bg-white/20 dark:bg-black/10 backdrop-blur-sm">
-          <div className="container mx-auto px-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <FeatureCard1
-                title="Daily Journaling"
-                description="Log your thoughts and feelings to uncover patterns over time."
-              />
-              <FeatureCard1
-                title="AI Reflections"
-                description="Receive gentle, personalized insights on recurring emotions and inner patterns."
-              />
-              <FeatureCard1
-                title="Track Your Growth"
-                description="Reveal emotional trends, recurring themes, and areas for mindful growth."
-              />
-            </div>
-          </div>
-        </section> */}
         
         <section id="reflection" className="py-20 md:py-32">
           <div className="container mx-auto px-6 max-w-3xl text-center">
