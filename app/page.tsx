@@ -93,7 +93,7 @@ export default function HomePage() {
           </div>
           {/* <div className="hidden md:flex items-center space-x-8"> */}
           <div className="absolute left-1/2 transform -translate-x-1/2 hidden md:flex items-center space-x-8">
-            <a href="/journal" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Journal</a>
+            <a href="/journalDemo" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Journal</a>
             <a href="/insights" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Insights</a>
             <a href="/history" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">History</a>
           </div>
@@ -123,7 +123,7 @@ export default function HomePage() {
               className="md:hidden absolute top-full left-0 w-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border-t border-gray-200/50 dark:border-gray-800/50 py-4 pb-8 shadow-lg z-10"
             >
               <div className="flex flex-col items-center space-y-4">
-                <a href="/journal" className="text-gray-800 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-lg" onClick={() => setIsMenuOpen(false)}>Journal</a>
+                <a href="/journalDemo" className="text-gray-800 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-lg" onClick={() => setIsMenuOpen(false)}>Journal</a>
                 <a href="/insights" className="text-gray-800 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-lg" onClick={() => setIsMenuOpen(false)}>Insights</a>
                 <a href="/history" className="text-gray-800 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-lg" onClick={() => setIsMenuOpen(false)}>History</a>
               </div>
@@ -143,7 +143,7 @@ export default function HomePage() {
             </p>
             <div className="mt-10 flex justify-center">
               <a
-                href="/journal"
+                href="/journalDemo"
                 // className="bg-indigo-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-indigo-700 dark:hover:bg-indigo-500 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-900"
                 className="bg-indigo-400 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-indigo-700 dark:hover:bg-indigo-500 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-900"
               >

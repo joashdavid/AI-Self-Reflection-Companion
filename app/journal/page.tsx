@@ -14,7 +14,7 @@ const JournalPage = () => {
         </p>
         <div className="mt-4 w-24 h-1 bg-gradient-to-r from-purple-300 to-blue-300 rounded-full"></div>
       </header> */}
-      <div className="w-full pl-4 sm:pl-6">
+      <div className="w-full pl-4 sm:pl-6 mb-3">
   <Link
     href="/"
     className="group inline-flex items-center gap-2 

@@ -11,7 +11,7 @@ export default function InsightsPage() {
   return (
     // <div className={`min-h-screen ${BG_VERY_LIGHT_GRAY}`}>
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4 sm:p-8 flex flex-col items-center">
-     <div className="w-full pl-4 sm:pl-6">
+     <div className="w-full pl-4 sm:pl-6 mb-3">
   <Link
     href="/"
     className="group inline-flex items-center gap-2 
