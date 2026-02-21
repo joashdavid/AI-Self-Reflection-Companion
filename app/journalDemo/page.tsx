@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import {Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button} from "@heroui/react";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button } from "@heroui/react";
 const JournalPage = () => {
   const [intensity, setIntensity] = useState(3); // Default to Neutral
   const [reflectionEnabled, setReflectionEnabled] = useState(false);
@@ -10,6 +10,9 @@ const JournalPage = () => {
   const [wisdomSelection, setWisdomSelection] = useState("Bible Verse"); // Default selection
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [content, setContent] = useState("");
+  // const [mood, setMood] = useState("");
+  const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
 
   // const intensityDescriptions = {
   //   1: "Calm",
@@ -18,28 +21,222 @@ const JournalPage = () => {
   //   4: "Moderate emotional charge",
   //   5: "Strong emotional charge",
   // };
+
+  const toggleMood = (emotion: string) => {
+  setSelectedMoods((prev) =>
+    prev.includes(emotion)
+      ? prev.filter((m) => m !== emotion) // remove if already selected
+      : [...prev, emotion] // add if not selected
+  );
+};
+  const handleSaveJournal = async () => {
+    try {
+      const res = await fetch("/api/journal", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content,
+          mood:selectedMoods,
+          intensity,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error);
+        return;
+      }
+
+      alert("Journal saved successfully ✅");
+
+      // reset form
+      setContent("");
+      setSelectedMoods([]);
+      setIntensity(3);
+
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong");
+    }
+  };
+
+  const emotionKeywords: Record<string, string[]> = {
+    Happy: [
+      "happy", "joy", "joyful", "delighted", "cheerful", "content",
+      "pleased", "grateful", "thankful", "blessed", "excited",
+      "thrilled", "elated", "overjoyed", "satisfied", "optimistic",
+      "hopeful", "smiling", "fantastic", "amazing", "good"
+    ],
+
+    Sad: [
+      "sad", "down", "depressed", "low", "unhappy",
+      "heartbroken", "lonely", "miserable", "hopeless",
+      "disappointed", "hurt", "crying", "teary",
+      "empty", "gloomy", "melancholy", "regretful",
+      "grieving", "lost"
+    ],
+
+    Anxious: [
+      "anxious", "worried", "nervous", "stressed", "stress",
+      "overthinking", "restless", "tense", "uneasy",
+      "panic", "panicking", "afraid", "fearful",
+      "doubtful", "uncertain", "insecure", "pressured",
+      "overwhelmed"
+    ],
+
+    Angry: [
+      "angry", "mad", "furious", "frustrated", "irritated",
+      "annoyed", "resentful", "bitter", "outraged",
+      "offended", "disrespected", "rage", "agitated",
+      "triggered", "upset"
+    ],
+
+    Calm: [
+      "calm", "peaceful", "relaxed", "serene",
+      "content", "balanced", "steady", "still",
+      "centered", "grounded", "at ease",
+      "composed", "quiet", "tranquil"
+    ],
+
+    Motivated: [
+      "motivated", "driven", "focused", "determined",
+      "disciplined", "inspired", "productive",
+      "energized", "committed", "ambitious",
+      "confident", "ready"
+    ],
+
+    Tired: [
+      "tired", "exhausted", "drained", "sleepy",
+      "fatigued", "burned out", "weary",
+      "lethargic", "low energy"
+    ],
+
+    Confused: [
+      "confused", "uncertain", "lost",
+      "unsure", "doubtful", "indecisive",
+      "puzzled", "overwhelmed"
+    ]
+  };
+  const moodColors: Record<string, string> = {
+    Happy: "bg-yellow-400 text-white hover:bg-yellow-500",
+    Sad: "bg-blue-500 text-white hover:bg-blue-600",
+    Anxious: "bg-orange-400 text-white hover:bg-orange-500",
+    Angry: "bg-red-500 text-white hover:bg-red-600",
+    Calm: "bg-green-400 text-white hover:bg-green-500",
+    Motivated: "bg-purple-500 text-white hover:bg-purple-600",
+    Tired: "bg-gray-400 text-white hover:bg-gray-500",
+    Confused: "bg-indigo-400 text-white hover:bg-indigo-500",
+  };
+  const [suggestedMoods, setSuggestedMoods] = useState<string[]>([]);
+//  useEffect(() => {
+//   const words = content
+//     .toLowerCase()
+//     .replace(/[^\w\s]/g, "")
+//     .split(/\s+/);
+
+//   const emotionScores: Record<string, number> = {};
+
+//   for (const emotion in emotionKeywords) {
+//     emotionScores[emotion] = 0;
+
+//     emotionKeywords[emotion].forEach((keyword) => {
+//       words.forEach((word) => {
+//         if (word === keyword) {
+//           emotionScores[emotion] += 1;
+//         }
+//       });
+//     });
+//   }
+
+//   const detected = Object.keys(emotionScores).filter(
+//     (emotion) => emotionScores[emotion] > 0
+//   );
+
+//   setSuggestedMoods(detected);
+// }, [content]);
+
+const negations = ["not", "never", "no"];
+const analyzeEmotion = (text: string) => {
+  const cleanedText = text.toLowerCase().replace(/[^\w\s]/g, "");
+
+  const words = cleanedText.split(/\s+/);
+
+  const emotionScores: Record<string, number> = {};
+  const matchedTags = new Set<string>();
+
+  for (const emotion in emotionKeywords) {
+    emotionScores[emotion] = 0;
+
+    emotionKeywords[emotion].forEach((keyword) => {
+      // Handle multi-word keywords (like "burned out")
+      if (keyword.includes(" ")) {
+        if (cleanedText.includes(keyword)) {
+          emotionScores[emotion] += 2;
+          matchedTags.add(keyword);
+        }
+        return;
+      }
+
+      words.forEach((word, index) => {
+        if (word === keyword) {
+          const prevWord = words[index - 1];
+
+          if (negations.includes(prevWord)) {
+            emotionScores[emotion] -= 1; // reduce if negated
+          } else {
+            emotionScores[emotion] += 1;
+            matchedTags.add(keyword);
+          }
+        }
+      });
+    });
+  }
+
+  // Sort dominant emotions
+  const dominantEmotions = Object.entries(emotionScores)
+    .filter(([_, score]) => score > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([emotion]) => emotion);
+
+  return {
+    emotions: dominantEmotions,
+    tags: Array.from(matchedTags),
+    scores: emotionScores,
+  };
+};
+useEffect(() => {
+  const result = analyzeEmotion(content);
+
+  setSuggestedMoods(result.tags); // display matched words as tags
+
+  console.log(result); // debug: see emotion scores
+}, [content]);
+
   const intensityDescriptions: Record<number, string> = {
-  1: "Calm",
-  2: "Mild emotional charge",
-  3: "Neutral",
-  4: "Moderate emotional charge",
-  5: "Strong emotional charge",
-};
+    1: "Calm",
+    2: "Mild emotional charge",
+    3: "Neutral",
+    4: "Moderate emotional charge",
+    5: "Strong emotional charge",
+  };
   const wisdomContent = {
-  "Bible Verse": {
-    quote: "Where your treasure is, there your heart will be also.",
-    author: "Matthew 6:21",
-  },
-  "Stoic Quote": {
-    quote: "You have power over your mind — not outside events.",
-    author: "Marcus Aurelius",
-  },
-  "Neutral Wisdom": {
-    quote: "Small daily improvements lead to stunning results.",
-    author: "Robin Sharma",
-  },
-};
-// Close dropdown when clicking outside
+    "Bible Verse": {
+      quote: "Where your treasure is, there your heart will be also.",
+      author: "Matthew 6:21",
+    },
+    "Stoic Quote": {
+      quote: "You have power over your mind — not outside events.",
+      author: "Marcus Aurelius",
+    },
+    "Neutral Wisdom": {
+      quote: "Small daily improvements lead to stunning results.",
+      author: "Robin Sharma",
+    },
+  };
+  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -60,14 +257,14 @@ const JournalPage = () => {
     { label: "Stoic Quote", icon: "🏛️" },
     { label: "Neutral Wisdom", icon: "🌿" },
   ];
-    const selectedWisdom =
+  const selectedWisdom =
     wisdomContent[wisdomSelection as keyof typeof wisdomContent];
 
   return (
-    
+
     // <div className="min-h-screen from-purple-50 to-blue-50 p-4 sm:p-8 flex flex-col items-center">
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4 sm:p-8 flex flex-col items-center">
-     
+
       {/* Page Header */}
       {/* <header className="w-full max-w-4xl bg-gradient-to-r from-purple-200 via-blue-100 to-green-100 p-6 sm:p-8 rounded-t-3xl shadow-lg mb-8 flex flex-col items-center">
         <h1 className="text-4xl sm:text-5xl font-bold text-gray-800 tracking-tight mb-2">
@@ -79,9 +276,9 @@ const JournalPage = () => {
         <div className="mt-4 w-24 h-1 bg-gradient-to-r from-purple-300 to-blue-300 rounded-full"></div>
       </header> */}
       <div className="w-full pl-4 sm:pl-6 mb-3">
-  <Link
-    href="/"
-    className="group inline-flex items-center gap-2 
+        <Link
+          href="/"
+          className="group inline-flex items-center gap-2 
              px-4 py-2 
              rounded-full
              bg-white/70 backdrop-blur-md
@@ -95,24 +292,24 @@ const JournalPage = () => {
              hover:to-[#6677B4]
              hover:text-white
              hover:shadow-indigo-300/50"
-  >
-    <span className="transition-transform duration-300 group-hover:-translate-x-1">
-      ←
-    </span>
-    Back to Home
-  </Link>
-</div>
+        >
+          <span className="transition-transform duration-300 group-hover:-translate-x-1">
+            ←
+          </span>
+          Back to Home
+        </Link>
+      </div>
       <header className="w-full max-w-7xl 
 bg-[url('/journal_page.png')] bg-cover bg-center bg-no-repeat
 p-6 sm:p-8 rounded-t-3xl shadow-lg mb-8 
 flex flex-col items-center">
-  <h1 className="text-4xl sm:text-5xl font-bold text-[#4F5D8C] tracking-tight mb-2">
+        <h1 className="text-4xl sm:text-5xl font-bold text-[#4F5D8C] tracking-tight mb-2">
           AI Self-Reflection Companion
         </h1>
         <p className="text-lg sm:text-xl font-light text-[#5F6FA3]">
           A space for mindful reflection
         </p>
-</header>
+      </header>
       {/* Main Content Area */}
       {/* <main className="w-full max-w-7xl bg-white p-6 sm:p-10 rounded-b-3xl shadow-xl grid grid-cols-1 md:grid-cols-3 gap-8"> */}
       <main className="w-full max-w-7xl bg-white p-6 sm:p-10 rounded-b-3xl shadow-xl grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
@@ -127,6 +324,8 @@ flex flex-col items-center">
 
           <div className="relative mb-6">
             <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
               className="w-full h-48 sm:h-64 p-4 text-lg text-gray-800 bg-blue-50 rounded-xl border-2 border-blue-100 focus:border-blue-300 focus:ring-2 focus:ring-blue-100 outline-none resize-none shadow-sm placeholder:text-gray-400"
               placeholder="I feel like I'm not doing enough at work. Everyone else seems more successful..."
             ></textarea>
@@ -145,7 +344,6 @@ flex flex-col items-center">
               ></path>
             </svg>
           </div>
-
           {/* Intensity Section */}
           {/* <div className="mb-8 p-4 bg-purple-50 rounded-xl border border-purple-100 shadow-sm"> */}
           <div className="mb-8 p-4 bg-blue-50 rounded-xl border border-[#D4D9F0] shadow-sm">
@@ -173,21 +371,85 @@ flex flex-col items-center">
 
 
           {/* Emotion Tags */}
-          <div className="flex flex-wrap gap-3 mb-8">
-            <button className="flex items-center px-4 py-2 rounded-full bg-red-100 text-red-700 text-sm font-medium shadow-sm hover:bg-red-200 transition-colors">
+          {/* <div className="flex flex-wrap gap-3 mb-8">
+            <button 
+            // className="flex items-center px-4 py-2 rounded-full bg-red-100 text-red-700 text-sm font-medium shadow-sm hover:bg-red-200 transition-colors"
+            onClick={() => setMood("Anxious")}
+            className={`flex items-center px-4 py-2 rounded-full text-sm font-medium shadow-sm transition-colors
+            ${mood === "Anxious"
+            ? "bg-red-400 text-white"
+            : "bg-red-100 text-red-700 hover:bg-red-200"}`}
+            >
               😟 Anxious
             </button>
-            <button className="flex items-center px-4 py-2 rounded-full bg-yellow-100 text-yellow-700 text-sm font-medium shadow-sm hover:bg-yellow-200 transition-colors">
+            <button
+            onClick={() => setMood("Insecure")}
+            className={`flex items-center px-4 py-2 rounded-full text-sm font-medium shadow-sm transition-colors
+            ${mood === "Insecure"
+            ? "bg-yellow-400 text-white"
+            : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"}`}
+            >
               😔 Insecure
             </button>
-            <button className="flex items-center px-4 py-2 rounded-full bg-purple-100 text-purple-700 text-sm font-medium shadow-sm hover:bg-purple-200 transition-colors">
+            <button 
+            onClick={() => setMood("Overwhelmed")}
+            className={`flex items-center px-4 py-2 rounded-full text-sm font-medium shadow-sm transition-colors
+            ${mood === "Overwhelmed"
+            ? "bg-purple-400 text-white"
+            : "bg-purple-100 text-purple-700 hover:bg-purple-200"}`}
+            >
               😵 Overwhelmed
             </button>
-          </div>
+          </div> */}
+          {/* <div className="flex flex-wrap gap-3 mb-8">
+            {suggestedMoods.map((emotion) => {
+              const activeColor =
+                moodColors[emotion] || "bg-blue-500 text-white";
+
+              return (
+                <button
+                  key={emotion}
+                  onClick={() => setMood(emotion)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors
+          ${mood === emotion
+                      ? activeColor
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                >
+                  {emotion}
+                </button>
+              );
+            })}
+          </div> */}
+          <div className="flex flex-wrap gap-3 mb-8">
+  {suggestedMoods.map((emotion) => {
+    const activeColor =
+      moodColors[emotion] || "bg-blue-500 text-white";
+
+    const isSelected = selectedMoods.includes(emotion);
+
+    return (
+      <button
+        key={emotion}
+        onClick={() => toggleMood(emotion)}
+        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
+          ${
+            isSelected
+              ? activeColor
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+      >
+        {emotion}
+      </button>
+    );
+  })}
+</div>
 
           {/* Primary Action Button */}
           {/* <button className="mt-auto w-full lg:w-3/4 self-center px-8 py-3 rounded-full bg-gradient-to-r from-purple-400 to-blue-400 text-white text-xl font-semibold shadow-lg hover:from-purple-500 hover:to-blue-500 transition-all transform hover:-translate-y-0.5"> */}
-          <button className="mt-auto w-full lg:w-3/4 self-center px-8 py-3 rounded-full 
+          <button
+            onClick={handleSaveJournal}
+            className="mt-auto w-full lg:w-3/4 self-center px-8 py-3 rounded-full 
 bg-gradient-to-r from-[#5C6FA8] to-[#6F82BD] 
 text-white text-xl font-semibold shadow-lg 
 hover:from-[#55659C] hover:to-[#6677B4] 
@@ -239,8 +501,8 @@ bg-gradient-to-r from-[#5C6FA8] to-[#6F82BD]
 text-white text-xl font-semibold shadow-lg 
 hover:from-[#55659C] hover:to-[#6677B4] 
 transition-all transform hover:-translate-y-0.5 mb-3">
-            Submit
-          </button>
+              Submit
+            </button>
 
             {/* Wisdom (Optional) */}
             <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100 shadow-sm">
@@ -257,9 +519,8 @@ transition-all transform hover:-translate-y-0.5 mb-3">
                     />
                     <div className="block bg-gray-300 w-14 h-8 rounded-full"></div>
                     <div
-                      className={`${
-                        wisdomEnabled ? "bg-[#4F5D8C] right-1" : "bg-white left-1"
-                      } absolute top-1 w-6 h-6 rounded-full transition-all duration-300`}
+                      className={`${wisdomEnabled ? "bg-[#4F5D8C] right-1" : "bg-white left-1"
+                        } absolute top-1 w-6 h-6 rounded-full transition-all duration-300`}
                     ></div>
                   </div>
                 </label>
@@ -285,77 +546,75 @@ transition-all transform hover:-translate-y-0.5 mb-3">
 
                   {/* <div className="relative mb-4"> */}
                   <div className="w-full max-w-md mx-auto" ref={dropdownRef}>
-      {/* Dropdown */}
-      <div className="relative mb-4">
-        <button
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="w-full px-4 py-3 text-left bg-white rounded-2xl border border-[#B9B6E3] shadow-sm
+                    {/* Dropdown */}
+                    <div className="relative mb-4">
+                      <button
+                        onClick={() => setDropdownOpen(!dropdownOpen)}
+                        className="w-full px-4 py-3 text-left bg-white rounded-2xl border border-[#B9B6E3] shadow-sm
           flex justify-between items-center
           hover:border-[#6E78B7] hover:shadow-md
           transition-all duration-200"
-        >
-          <span className="text-gray-700 font-medium">
-            {wisdomSelection}
-          </span>
+                      >
+                        <span className="text-gray-700 font-medium">
+                          {wisdomSelection}
+                        </span>
 
-          <svg
-            className={`w-5 h-5 text-[#B9B6E3] transition-transform duration-200 ${
-              dropdownOpen ? "rotate-180" : ""
-            }`}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        </button>
+                        <svg
+                          className={`w-5 h-5 text-[#B9B6E3] transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""
+                            }`}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </button>
 
-        {dropdownOpen && (
-          <div className="absolute z-10 mt-2 w-full bg-white rounded-2xl shadow-lg border border-[#B9B6E3] overflow-hidden animate-fadeIn">
-            {options.map((option) => (
-              <div
-                key={option.label}
-                onClick={() => {
-                  setWisdomSelection(option.label);
-                  setDropdownOpen(false);
-                }}
-                className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors text-gray-800
-                ${
-                  wisdomSelection === option.label
-                    // ? "bg-[#4F5D8C] text-blue-600"
-                    // : "hover:bg-[#B9B6E3]"
-                    ? "bg-[#4F5D8C] text-slate-900"
-                    : "hover:bg-[#B9B6E3]"
-                }`}
-              >
-                <span>{option.icon}</span>
-                <span className="font-medium">{option.label}</span>
+                      {dropdownOpen && (
+                        <div className="absolute z-10 mt-2 w-full bg-white rounded-2xl shadow-lg border border-[#B9B6E3] overflow-hidden animate-fadeIn">
+                          {options.map((option) => (
+                            <div
+                              key={option.label}
+                              onClick={() => {
+                                setWisdomSelection(option.label);
+                                setDropdownOpen(false);
+                              }}
+                              className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors text-gray-800
+                ${wisdomSelection === option.label
+                                  // ? "bg-[#4F5D8C] text-blue-600"
+                                  // : "hover:bg-[#B9B6E3]"
+                                  ? "bg-[#4F5D8C] text-slate-900"
+                                  : "hover:bg-[#B9B6E3]"
+                                }`}
+                            >
+                              <span>{option.icon}</span>
+                              <span className="font-medium">{option.label}</span>
 
-                {wisdomSelection === option.label && (
-                  <span className="ml-auto text-amber-400">✓</span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                              {wisdomSelection === option.label && (
+                                <span className="ml-auto text-amber-400">✓</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
-      {/* Quote Card */}
-      <div className="bg-blue-50 p-6 rounded-2xl shadow-sm border border-indigo-300 transition-all duration-300">
-        <p className="italic text-gray-800 text-lg mb-2">
-          "{selectedWisdom.quote}"
-        </p>
-        <p className="text-right text-gray-600">
-          — {selectedWisdom.author}
-        </p>
-      </div>
-    </div>
-  
+                    {/* Quote Card */}
+                    <div className="bg-blue-50 p-6 rounded-2xl shadow-sm border border-indigo-300 transition-all duration-300">
+                      <p className="italic text-gray-800 text-lg mb-2">
+                        "{selectedWisdom.quote}"
+                      </p>
+                      <p className="text-right text-gray-600">
+                        — {selectedWisdom.author}
+                      </p>
+                    </div>
+                  </div>
+
 
                 </>
               )}
@@ -395,7 +654,7 @@ transition-all transform hover:-translate-y-0.5 mb-3">
             <div className="bg-white/10 p-4 rounded-md">
               <h3 className="text-xl font-semibold text-white mb-2">Gentle Insight</h3>
               <p className="text-white text-lg font-light leading-relaxed">
-                Consider where these feelings of unworthiness might stem from and how you can cultivate self-compassion.<br/>
+                Consider where these feelings of unworthiness might stem from and how you can cultivate self-compassion.<br />
                 Embracing your journey, rather than comparing it, can bring profound peace.
               </p>
             </div>
@@ -405,5 +664,4 @@ transition-all transform hover:-translate-y-0.5 mb-3">
     </div>
   );
 };
-
 export default JournalPage;

@@ -7,8 +7,24 @@ datasource db {
 }
 
 model JournalEntry {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   content   String
-  mood      String?
+  intensity Int?
+  mood      String[]
   createdAt DateTime @default(now())
+
+  analysis  JournalAnalysis?
+}
+
+model JournalAnalysis {
+  id        String   @id @default(cuid())
+  entryId   String   @unique
+  emotions  Json
+  patterns  Json
+  questions Json
+  summary   String
+  wisdom    String?
+  createdAt DateTime @default(now())
+
+  entry JournalEntry @relation(fields: [entryId], references: [id])
 }
