@@ -63,18 +63,17 @@
 //   return prisma;
 // }
 
-import { defineConfig } from "prisma/config";
+import { PrismaClient } from "@prisma/client";
 
-const databaseUrl = process.env.DATABASE_URL;
+const globalForPrisma = global as unknown as {
+  prisma: PrismaClient | undefined;
+};
 
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is not defined");
-}
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient();
 
-export default defineConfig({
-  schema: "prisma/schema.prisma",
-  datasource: {
-    url: databaseUrl,
-  },
-});
+if (process.env.NODE_ENV !== "production")
+  globalForPrisma.prisma = prisma;
+
 
