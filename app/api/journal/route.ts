@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+export const runtime = "nodejs";
 export async function GET() {
   try {
     const test = await prisma.$queryRaw`SELECT 1`;
@@ -32,10 +33,12 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
-      { error: "Failed to save journal" },
-      { status: 500 }
-    );
+    // return NextResponse.json(
+    //   { error: "Failed to save journal" },
+    //   { status: 500 }
+    // );
+    console.error("FULL ERROR:", error);
+    return Response.json({ error: String(error) }, { status: 500 });
   }
 }
 
