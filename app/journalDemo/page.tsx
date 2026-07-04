@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button } from "@heroui/react";
+import { supabase } from "@/lib/supabaseClient";
 const JournalPage = () => {
   const [intensity, setIntensity] = useState(3); // Default to Neutral
   const [reflectionEnabled, setReflectionEnabled] = useState(false);
@@ -14,23 +15,35 @@ const JournalPage = () => {
   // const [mood, setMood] = useState("");
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
 
-  // const intensityDescriptions = {
-  //   1: "Calm",
-  //   2: "Mild emotional charge",
-  //   3: "Neutral",
-  //   4: "Moderate emotional charge",
-  //   5: "Strong emotional charge",
-  // };
 
   const toggleMood = (emotion: string) => {
-  setSelectedMoods((prev) =>
-    prev.includes(emotion)
-      ? prev.filter((m) => m !== emotion) // remove if already selected
-      : [...prev, emotion] // add if not selected
-  );
+    setSelectedMoods((prev) =>
+      prev.includes(emotion)
+        ? prev.filter((m) => m !== emotion) // remove if already selected
+        : [...prev, emotion] // add if not selected
+    );
+  };
+
+  const [loading, setLoading] = useState(false);
+type AIReflection = {
+  tone: string;
+  patterns: string[];
+  insight: string;
 };
+  const [aiReflection, setAiReflection] = useState<AIReflection | null>(null);
   const handleSaveJournal = async () => {
     try {
+      setLoading(true);
+
+      // ✅ GET USER HERE (correct place)
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
+
+      if (!user) {
+        alert("Not logged in");
+        return;
+      }
+
       const res = await fetch("/api/journal", {
         method: "POST",
         headers: {
@@ -38,21 +51,49 @@ const JournalPage = () => {
         },
         body: JSON.stringify({
           content,
-          mood:selectedMoods,
+          mood: selectedMoods,
           intensity,
+          userId: user.id, // 🔥 IMPORTANT
         }),
       });
 
-      const data = await res.json();
+      const dataRes = await res.json();
 
       if (!res.ok) {
-        alert(data.error);
+        alert(dataRes.error);
         return;
       }
 
-      alert("Journal saved successfully ✅");
+      // 🔥 AI analysis
+      // await fetch("/api/analyze", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify({
+      //     entryId: dataRes.entry.id,
+      //     content,
+      //   }),
+      // });
+      
+      const analyzeRes = await fetch("/api/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          entryId: dataRes.entry.id,
+          content,
+          emotions: aiSuggestedMoods, // 🔥 IMPORTANT
+        }),
+      });
+      const analyzeData = await analyzeRes.json();
 
-      // reset form
+// ✅ store in state
+setAiReflection(analyzeData);
+      alert("Journal saved & analyzed ✅");
+
+      // reset
       setContent("");
       setSelectedMoods([]);
       setIntensity(3);
@@ -60,9 +101,10 @@ const JournalPage = () => {
     } catch (error) {
       console.error(error);
       alert("Something went wrong");
+    } finally {
+      setLoading(false);
     }
   };
-
   const emotionKeywords: Record<string, string[]> = {
     Happy: [
       "happy", "joy", "joyful", "delighted", "cheerful", "content",
@@ -130,90 +172,262 @@ const JournalPage = () => {
     Tired: "bg-gray-400 text-white hover:bg-gray-500",
     Confused: "bg-indigo-400 text-white hover:bg-indigo-500",
   };
+  const emotionStyles: Record<
+    string,
+    { emoji: string; bg: string; text: string; border: string }
+  > = {
+    Anxious: {
+      emoji: "😟",
+      bg: "bg-red-100",
+      text: "text-red-600",
+      border: "border-red-200",
+    },
+    Insecure: {
+      emoji: "😔",
+      bg: "bg-yellow-100",
+      text: "text-yellow-700",
+      border: "border-yellow-200",
+    },
+    Overwhelmed: {
+      emoji: "😵",
+      bg: "bg-purple-100",
+      text: "text-purple-600",
+      border: "border-purple-200",
+    },
+    Sad: {
+      emoji: "😞",
+      bg: "bg-blue-100",
+      text: "text-blue-600",
+      border: "border-blue-200",
+    },
+    Calm: {
+      emoji: "😌",
+      bg: "bg-green-100",
+      text: "text-green-600",
+      border: "border-green-200",
+    },
+    Happy: {
+      emoji: "😊",
+      bg: "bg-orange-100",
+      text: "text-orange-600",
+      border: "border-orange-200",
+    },
+    Angry: {
+      emoji: "😠",
+      bg: "bg-rose-100",
+      text: "text-rose-600",
+      border: "border-rose-200",
+    },
+    Confused: {
+      emoji: "😕",
+      bg: "bg-slate-100",
+      text: "text-slate-600",
+      border: "border-slate-200",
+    },
+    Motivated: {
+      emoji: "🔥",
+      bg: "bg-indigo-100",
+      text: "text-indigo-600",
+      border: "border-indigo-200",
+    },
+    Lonely: {
+      emoji: "🥺",
+      bg: "bg-pink-100",
+      text: "text-pink-600",
+      border: "border-pink-200",
+    },
+  };
+  type Emotion = {
+    label: string;
+    confidence: number;
+  };
   const [suggestedMoods, setSuggestedMoods] = useState<string[]>([]);
-//  useEffect(() => {
-//   const words = content
-//     .toLowerCase()
-//     .replace(/[^\w\s]/g, "")
-//     .split(/\s+/);
+  const [aiSuggestedMoods, setAiSuggestedMoods] = useState<Emotion[]>([]);
+  const [detectingMoods, setDetectingMoods] = useState(false);
+  // useEffect(() => {
+  //   if (!content.trim()) {
+  //     setAiSuggestedMoods([]);
+  //     return;
+  //   }
 
-//   const emotionScores: Record<string, number> = {};
+  //   const timer = setTimeout(async () => {
+  //     try {
+  //       setDetectingMoods(true);
 
-//   for (const emotion in emotionKeywords) {
-//     emotionScores[emotion] = 0;
+  //       const res = await fetch("/api/detect-emotions", {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //         },
+  //         body: JSON.stringify({ content }),
+  //       });
 
-//     emotionKeywords[emotion].forEach((keyword) => {
-//       words.forEach((word) => {
-//         if (word === keyword) {
-//           emotionScores[emotion] += 1;
-//         }
-//       });
-//     });
-//   }
+  //       const data = await res.json();
 
-//   const detected = Object.keys(emotionScores).filter(
-//     (emotion) => emotionScores[emotion] > 0
-//   );
+  //       if (res.ok && Array.isArray(data.emotions) && data.emotions.length > 0) {
+  //         setAiSuggestedMoods(data.emotions);
+  //       } else {
+  //         // 🔥 Fallback to local analysis
+  //         const local = analyzeEmotion(content);
+  //         setAiSuggestedMoods(
+  //           local.emotions.slice(0, 3).map((emotion) => ({
+  //             label: emotion,
+  //             confidence: 0.5, // default fallback confidence
+  //           }))
+  //         );
+  //       }
+  //     } catch (error) {
+  //       console.error("Emotion detection failed:", error);
+  //       setAiSuggestedMoods([]);
+  //     } finally {
+  //       setDetectingMoods(false);
+  //     }
+  //   }, 500); // debounce
 
-//   setSuggestedMoods(detected);
-// }, [content]);
+  //   return () => clearTimeout(timer);
+  // }, [content]);
+  //  useEffect(() => {
+  //   const words = content
+  //     .toLowerCase()
+  //     .replace(/[^\w\s]/g, "")
+  //     .split(/\s+/);
 
-const negations = ["not", "never", "no"];
-const analyzeEmotion = (text: string) => {
-  const cleanedText = text.toLowerCase().replace(/[^\w\s]/g, "");
+  //   const emotionScores: Record<string, number> = {};
 
-  const words = cleanedText.split(/\s+/);
+  //   for (const emotion in emotionKeywords) {
+  //     emotionScores[emotion] = 0;
 
-  const emotionScores: Record<string, number> = {};
-  const matchedTags = new Set<string>();
+  //     emotionKeywords[emotion].forEach((keyword) => {
+  //       words.forEach((word) => {
+  //         if (word === keyword) {
+  //           emotionScores[emotion] += 1;
+  //         }
+  //       });
+  //     });
+  //   }
 
-  for (const emotion in emotionKeywords) {
-    emotionScores[emotion] = 0;
+  //   const detected = Object.keys(emotionScores).filter(
+  //     (emotion) => emotionScores[emotion] > 0
+  //   );
 
-    emotionKeywords[emotion].forEach((keyword) => {
-      // Handle multi-word keywords (like "burned out")
-      if (keyword.includes(" ")) {
-        if (cleanedText.includes(keyword)) {
-          emotionScores[emotion] += 2;
-          matchedTags.add(keyword);
+  //   setSuggestedMoods(detected);
+  // }, [content]);
+  let requestId = 0;
+  useEffect(() => {
+    if (!content.trim()) {
+      setAiSuggestedMoods([]);
+      return;
+    }
+
+    // 🔥 Instant local result
+    const local = analyzeEmotion(content);
+    setAiSuggestedMoods(
+      local.emotions.slice(0, 3).map((emotion) => ({
+        label: emotion,
+        confidence: 0.5,
+      }))
+    );
+
+    const currentRequest = ++requestId;
+
+    const timer = setTimeout(async () => {
+      try {
+        setDetectingMoods(true);
+
+        const res = await fetch("/api/detect-emotions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ content }),
+        });
+
+        const data = await res.json();
+
+        if (
+          currentRequest === requestId &&
+          res.ok &&
+          Array.isArray(data.emotions) &&
+          data.emotions.length > 0
+        ) {
+          // ✅ SINGLE clean update (no flicker)
+          setAiSuggestedMoods((prev) => {
+            if (JSON.stringify(prev) !== JSON.stringify(data.emotions)) {
+              return data.emotions;
+            }
+            return prev;
+          });
         }
-        return;
+      } catch (error) {
+        console.error("Emotion detection failed:", error);
+      } finally {
+        if (currentRequest === requestId) {
+          setDetectingMoods(false);
+        }
       }
+    }, 600);
 
-      words.forEach((word, index) => {
-        if (word === keyword) {
-          const prevWord = words[index - 1];
+    return () => clearTimeout(timer);
+  }, [content]);
 
-          if (negations.includes(prevWord)) {
-            emotionScores[emotion] -= 1; // reduce if negated
-          } else {
-            emotionScores[emotion] += 1;
+
+  const negations = ["not", "never", "no"];
+  const analyzeEmotion = (text: string) => {
+    const cleanedText = text.toLowerCase().replace(/[^\w\s]/g, "");
+
+    const words = cleanedText.split(/\s+/);
+
+    const emotionScores: Record<string, number> = {};
+    const matchedTags = new Set<string>();
+
+    for (const emotion in emotionKeywords) {
+      emotionScores[emotion] = 0;
+
+      emotionKeywords[emotion].forEach((keyword) => {
+        // Handle multi-word keywords (like "burned out")
+        if (keyword.includes(" ")) {
+          if (cleanedText.includes(keyword)) {
+            emotionScores[emotion] += 2;
             matchedTags.add(keyword);
           }
+          return;
         }
+
+        words.forEach((word, index) => {
+          if (word === keyword) {
+            const prevWord = words[index - 1];
+
+            if (negations.includes(prevWord)) {
+              emotionScores[emotion] -= 1; // reduce if negated
+            } else {
+              emotionScores[emotion] += 1;
+              matchedTags.add(keyword);
+            }
+          }
+        });
       });
-    });
-  }
+    }
 
-  // Sort dominant emotions
-  const dominantEmotions = Object.entries(emotionScores)
-    .filter(([_, score]) => score > 0)
-    .sort((a, b) => b[1] - a[1])
-    .map(([emotion]) => emotion);
+    // Sort dominant emotions
+    const dominantEmotions = Object.entries(emotionScores)
+      .filter(([_, score]) => score > 0)
+      .sort((a, b) => b[1] - a[1])
+      .map(([emotion]) => emotion);
 
-  return {
-    emotions: dominantEmotions,
-    tags: Array.from(matchedTags),
-    scores: emotionScores,
+    return {
+      emotions: dominantEmotions,
+      tags: Array.from(matchedTags),
+      scores: emotionScores,
+    };
   };
-};
-useEffect(() => {
-  const result = analyzeEmotion(content);
+  useEffect(() => {
+    const result = analyzeEmotion(content);
 
-  setSuggestedMoods(result.tags); // display matched words as tags
+    // setSuggestedMoods(result.tags); // display matched words as tags
+    setSuggestedMoods(result.emotions);
 
-  console.log(result); // debug: see emotion scores
-}, [content]);
+    console.log(result); // debug: see emotion scores
+  }, [content]);
 
   const intensityDescriptions: Record<number, string> = {
     1: "Calm",
@@ -421,34 +635,77 @@ flex flex-col items-center">
               );
             })}
           </div> */}
-          <div className="flex flex-wrap gap-3 mb-8">
-  {suggestedMoods.map((emotion) => {
-    const activeColor =
-      moodColors[emotion] || "bg-blue-500 text-white";
+          {/* <div className="flex flex-wrap gap-3 mb-8">
+            {suggestedMoods.map((emotion) => {
+              const activeColor =
+                moodColors[emotion] || "bg-blue-500 text-white";
 
-    const isSelected = selectedMoods.includes(emotion);
+              const isSelected = selectedMoods.includes(emotion);
 
-    return (
-      <button
-        key={emotion}
-        onClick={() => toggleMood(emotion)}
-        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
-          ${
-            isSelected
-              ? activeColor
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-      >
-        {emotion}
-      </button>
-    );
-  })}
-</div>
+              return (
+                <button
+                  key={emotion}
+                  onClick={() => toggleMood(emotion)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
+          ${isSelected
+                      ? activeColor
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                >
+                  {emotion}
+                </button>
+              );
+            })}
+          </div> */}
+          <div className="flex flex-wrap gap-4 mb-8">
+            {detectingMoods && (
+              <span className="text-sm text-gray-500 animate-pulse">
+                Detecting emotions...
+              </span>
+            )}
+            {!detectingMoods &&
+              aiSuggestedMoods.map((emotionObj) => {
+                const { label, confidence } = emotionObj;
+
+                const style = emotionStyles[label] || {
+                  emoji: "🫰",
+                  bg: "bg-gray-100",
+                  text: "text-gray-700",
+                  border: "border-gray-200",
+                };
+
+                const isSelected = selectedMoods.includes(label);
+
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => toggleMood(label)}
+                    className={`
+        inline-flex items-center gap-2
+        px-5 py-3 rounded-full border shadow-sm
+        transition-all duration-200
+        ${style.bg} ${style.text} ${style.border}
+        ${isSelected ? "ring-2 ring-offset-1 ring-[#5C6FA8] scale-[1.02]" : "hover:shadow-md"}
+      `}
+                  >
+                    <span>{style.emoji}</span>
+                    <span>{label}</span>
+
+                    {/* 🔥 Confidence badge */}
+                    <span className="text-xs opacity-70 ml-1">
+                      {(confidence * 100).toFixed(0)}%
+                    </span>
+                  </button>
+                );
+              })}
+          </div>
 
           {/* Primary Action Button */}
           {/* <button className="mt-auto w-full lg:w-3/4 self-center px-8 py-3 rounded-full bg-gradient-to-r from-purple-400 to-blue-400 text-white text-xl font-semibold shadow-lg hover:from-purple-500 hover:to-blue-500 transition-all transform hover:-translate-y-0.5"> */}
           <button
             onClick={handleSaveJournal}
+            disabled={loading}
             className="mt-auto w-full lg:w-3/4 self-center px-8 py-3 rounded-full 
 bg-gradient-to-r from-[#5C6FA8] to-[#6F82BD] 
 text-white text-xl font-semibold shadow-lg 
@@ -636,8 +893,11 @@ transition-all transform hover:-translate-y-0.5 mb-3">
                 <span className="text-xl mr-2">😊</span>
                 <h3 className="text-xl font-semibold">Emotional Tone</h3>
               </div>
-              <p className="text-white text-lg font-light leading-relaxed">
+              {/* <p className="text-white text-lg font-light leading-relaxed">
                 You seem to be grappling with feelings of inadequacy and self-doubt.
+              </p> */}
+              <p className="text-white text-lg font-light leading-relaxed">
+                {aiReflection?.tone|| "Start writing to see insights..."}
               </p>
             </div>
 

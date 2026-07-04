@@ -1,51 +1,55 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Image from "next/image";
-const AiCompanionIcon = () => (
-  <svg
-    className="h-8 w-8 text-indigo-600 dark:text-indigo-400"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    role="img" // Added role for semantic meaning
-    aria-labelledby="ai-companion-logo-title" // Links to the title element
-  >
-    <title id="ai-companion-logo-title">AI Self-Reflection Companion Logo</title> {/* Provides accessible name */}
-    <path
-      d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21Z"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeMiterlimit="10"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M15.5 12C15.5 13.933 13.933 15.5 12 15.5C10.067 15.5 8.5 13.933 8.5 12C8.5 10.067 10.067 8.5 12 8.5C13.933 8.5 15.5 10.067 15.5 12Z"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeMiterlimit="10"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M8.5 12H8.51"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeMiterlimit="10"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M12 12H12.01"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeMiterlimit="10"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { FaUserCircle } from "react-icons/fa";
+// const AiCompanionIcon = () => (
+//   <svg
+//     className="h-8 w-8 text-indigo-600 dark:text-indigo-400"
+//     viewBox="0 0 24 24"
+//     fill="none"
+//     xmlns="http://www.w3.org/2000/svg"
+//     role="img" // Added role for semantic meaning
+//     aria-labelledby="ai-companion-logo-title" // Links to the title element
+//   >
+//     <title id="ai-companion-logo-title">AI Self-Reflection Companion Logo</title> {/* Provides accessible name */}
+//     <path
+//       d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21Z"
+//       stroke="currentColor"
+//       strokeWidth="1.5"
+//       strokeMiterlimit="10"
+//       strokeLinecap="round"
+//       strokeLinejoin="round"
+//     />
+//     <path
+//       d="M15.5 12C15.5 13.933 13.933 15.5 12 15.5C10.067 15.5 8.5 13.933 8.5 12C8.5 10.067 10.067 8.5 12 8.5C13.933 8.5 15.5 10.067 15.5 12Z"
+//       stroke="currentColor"
+//       strokeWidth="1.5"
+//       strokeMiterlimit="10"
+//       strokeLinecap="round"
+//       strokeLinejoin="round"
+//     />
+//     <path
+//       d="M8.5 12H8.51"
+//       stroke="currentColor"
+//       strokeWidth="2"
+//       strokeMiterlimit="10"
+//       strokeLinecap="round"
+//       strokeLinejoin="round"
+//     />
+//     <path
+//       d="M12 12H12.01"
+//       stroke="currentColor"
+//       strokeWidth="2"
+//       strokeMiterlimit="10"
+//       strokeLinecap="round"
+//       strokeLinejoin="round"
+//     />
+//   </svg>
+// );
 interface FeatureCardProps {
   title: string;
   description: string;
@@ -80,13 +84,54 @@ const FeatureCard = ({ title, description, icon }: FeatureCardProps) => (
 
 export default function HomePage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  useEffect(() => {
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+      setLoading(false);
+    };
+
+    getUser();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-indigo-950 dark:to-black text-gray-800 dark:text-gray-200">
-      
+
       <header className="sticky top-0 z-50 bg-white/30 dark:bg-gray-900/30 backdrop-blur-lg border-b border-gray-200/50 dark:border-gray-800/50">
         <nav className="container mx-auto px-6 py-4 flex justify-between items-center relative">
           <div className="flex items-center space-x-3 z-20">
-            <AiCompanionIcon />
+            {/* <AiCompanionIcon /> */}
+            <Image
+              src="/369.png"
+              alt="Logo"
+              width={32}
+              height={32}
+              className="dark:hidden"
+            />
+
+            <Image
+              src="/369.png"
+              alt="Logo"
+              width={32}
+              height={32}
+              className="hidden dark:block"
+            />
+            <title id="ai-companion-logo-title">AI Self-Reflection Companion Logo</title>
             <span className="font-semibold text-lg text-gray-800 dark:text-gray-100">
               AI Self-Reflection Companion
             </span>
@@ -97,6 +142,88 @@ export default function HomePage() {
             <a href="/insights" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Insights</a>
             <a href="/history" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">History</a>
           </div>
+          {/* <a
+            href="/login"
+            // className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-indigo-700 dark:hover:bg-indigo-500 transition-all shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-900"
+            className="bg-indigo-400 text-white px-5 py-2.5 rounded-lg text-sm font-semibold 
+  hover:bg-indigo-500 dark:hover:bg-indigo-400 
+  transition-all shadow-sm hover:shadow-md 
+  focus:outline-none focus:ring-2 focus:ring-indigo-400 
+  focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-900"
+          >
+            Login/Signup
+          </a> */}
+          {loading ? null : user ? (
+            // <div className="flex items-center gap-4">
+            //   <span className="text-gray-700 dark:text-gray-200 font-medium">
+            //     👋 {user.user_metadata?.name}
+            //   </span>
+
+            //   <button
+            //     onClick={handleLogout}
+            //     className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-semibold 
+            //     hover:bg-red-600 transition"
+            //   >
+            //     Logout
+            //   </button>
+            // </div>
+            <div className="relative">
+              {/* Trigger */}
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg 
+    bg-indigo-400 text-white backdrop-blur-md
+    hover:shadow-md transition"
+              >
+                {/* <span className="text-gray-700 dark:text-gray-200 font-medium">
+      👤 {user.user_metadata?.name}
+    </span> */}
+                <div className="flex items-center gap-2">
+                  <FaUserCircle className="text-2xl text-indigo-500" />
+                  <span className="text-gray-700 dark:text-gray-200 font-medium">
+                    {user.user_metadata?.name}
+                  </span>
+                </div>
+                <span className="text-sm">▼</span>
+              </button>
+
+              {/* Dropdown */}
+              {isDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-900 
+      rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 
+      overflow-hidden z-50"
+                >
+                  <button
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    Profile
+                  </button>
+
+                  <button
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    Settings
+                  </button>
+
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <a
+              href="/login"
+              className="bg-indigo-400 text-white px-5 py-2.5 rounded-lg text-sm font-semibold 
+      hover:bg-indigo-500 dark:hover:bg-indigo-400 
+      transition-all shadow-sm hover:shadow-md"
+            >
+              Login/Signup
+            </a>
+          )}
           {/* Mobile Menu Button */}
           <button
             className="md:hidden p-2 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 z-20"
@@ -156,33 +283,33 @@ export default function HomePage() {
           </div>
         </section>
 
-<section className="py-20 md:py-24 bg-white/20 dark:bg-black/10 backdrop-blur-sm">
-  <div className="container mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-      
-      <FeatureCard
-        icon="/journal.png"
-        title="Daily Journaling"
-        description="Log your thoughts and feelings to uncover patterns over time."
-      />
+        <section className="py-20 md:py-24 bg-white/20 dark:bg-black/10 backdrop-blur-sm">
+          <div className="container mx-auto px-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
-      <FeatureCard
-        icon="/brain.png"
-        title="AI Reflections"
-        description="Receive gentle, personalized insights on recurring emotions and inner patterns."
-      />
+              <FeatureCard
+                icon="/journal.png"
+                title="Daily Journaling"
+                description="Log your thoughts and feelings to uncover patterns over time."
+              />
 
-      <FeatureCard
-        icon="/growth.png"
-        title="Track Your Growth"
-        description="Reveal emotional trends, recurring themes, and areas for mindful growth."
-      />
+              <FeatureCard
+                icon="/brain.png"
+                title="AI Reflections"
+                description="Receive gentle, personalized insights on recurring emotions and inner patterns."
+              />
 
-    </div>
-  </div>
-</section>
+              <FeatureCard
+                icon="/growth.png"
+                title="Track Your Growth"
+                description="Reveal emotional trends, recurring themes, and areas for mindful growth."
+              />
 
-        
+            </div>
+          </div>
+        </section>
+
+
         <section id="reflection" className="py-20 md:py-32">
           <div className="container mx-auto px-6 max-w-3xl text-center">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
