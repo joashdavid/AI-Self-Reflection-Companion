@@ -45,27 +45,38 @@ export async function GET() {
     }
 
     // 🔥 Find DB user
-    const dbUser = await prisma.user.findUnique({
-      where: { email: user.email! },
-    });
+    // const dbUser = await prisma.user.findUnique({
+    //   where: { email: user.email! },
+    // });
 
-    if (!dbUser) {
-      return NextResponse.json({ journals: [] });
-    }
+    // if (!dbUser) {
+    //   return NextResponse.json({ journals: [] });
+    // }
 
-    // ✅ Fetch journals
+    // // ✅ Fetch journals
+    // const journals = await prisma.journalEntry.findMany({
+    //   where: {
+    //     userId: dbUser.id,
+    //   },
+    //   orderBy: {
+    //     createdAt: "desc",
+    //   },
+    //   include: {
+    //     analysis: true, // future ready
+    //   },
+    // });
     const journals = await prisma.journalEntry.findMany({
       where: {
-        userId: dbUser.id,
+        userId: user.id,
       },
       orderBy: {
         createdAt: "desc",
       },
       include: {
-        analysis: true, // future ready
+        analysis: true,
       },
     });
-
+    
     return NextResponse.json({ journals });
 
   } catch (error) {
